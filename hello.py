@@ -31,14 +31,17 @@ def hello():
 def create_user(email):
     email = re.search('[a-zA-Z0-9-_\+.]*@dropbox.com', email)
     if not email:
-        return json.dumps({'error': -1, 'message': 'must register with a dropbox email address'})
+        return Response(json.dumps({'error': -1, 'message': 'must register with a dropbox email address'}), mimetype='text/json')
+
     email = email.group(0)
     user = db.user.find_one({'email': email})
     if user:
-        return json.dumps({'error': -2, 'message': 'user already exists'})
+        return Response(json.dumps({'error': -2, 'message': 'user already exists'}), mimetype='text/json')
+
     else:
         user_id = db.user.insert({'email': email})
-        return json.dumps({'id': str(user_id)})
+        return Response(json.dumps({'id': str(user_id)}), mimetype='text/json')
+
 
 @app.route('/list_users')
 def list_users():
@@ -46,4 +49,4 @@ def list_users():
     toReturn = []
     for user in users:
         toReturn.append({'id': str(user['_id']), 'email': user['email']})
-    return json.dumps(toReturn)
+    return Response(json.dumps(toReturn), mimetype='text/json')
