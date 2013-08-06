@@ -1,20 +1,27 @@
 import os
 import json
+
 import re
-from flask import Flask, Response
+from flask import Flask, request, Response
+from bson import json_util
 from urlparse import urlparse
 from pymongo import Connection
+from bson import ObjectId
+
 
 MONGO_URL = os.environ.get('MONGOHQ_URL')
 
 if MONGO_URL:
     connection = Connection(MONGO_URL)
     db = connection[urlparse(MONGO_URL).path[1:]]
+    debug = False
 else:
+    debug = True
     connection = Connection('localhost', 27017)
     db = connection['MyDB']
 
 app = Flask(__name__)
+app.debug = debug
 
 @app.route('/')
 def hello():
@@ -42,7 +49,6 @@ def create_user(email):
         user_id = db.user.insert({'email': email})
         return Response(json.dumps({'id': str(user_id)}), mimetype='text/json')
 
-
 @app.route('/list_users')
 def list_users():
     users = db.user.find()
@@ -50,3 +56,13 @@ def list_users():
     for user in users:
         toReturn.append({'id': str(user['_id']), 'email': user['email']})
     return Response(json.dumps(toReturn), mimetype='text/json')
+
+@app.route('/users/<user_id>/facts', methods=['POST', 'GET'])
+def user_assignment(user_id):
+    user = db.user.find_one(ObjectId(user_id))
+    if request.method == 'POST':
+        user['facts'].append(request.form['fact'])
+        db.user.save(user)
+        return Response(json.dumps({}), mimetype='text/json')
+    else:
+        return Response(json.dumps(user['facts']), mimetype='text/json')

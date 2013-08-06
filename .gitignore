@@ -1,5 +1,7 @@
 *.py[cod]
 
+.DS_Store
+
 # C extensions
 *.so
 
@@ -35,3 +37,5 @@ nosetests.xml
 .pydevproject
 .pyc
 venv/
+
+\#*
