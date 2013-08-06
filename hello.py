@@ -1,7 +1,7 @@
 import os
 import json
 import re
-from flask import Flask
+from flask import Flask, Response
 from urlparse import urlparse
 from pymongo import Connection
 
@@ -25,7 +25,7 @@ def hello():
         pageviews['count'] += 1
     db.test.save(pageviews)
     toReturn = {'result':'Hello Worlddddddd!\nHack Week, Bitches!\n %i page views!' % pageviews['count']}
-    return json.dumps(toReturn)
+    return Response(json.dumps(toReturn), mimetype='text/json')
 
 @app.route('/create_user/<email>')
 def create_user(email):
