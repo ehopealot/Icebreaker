@@ -65,7 +65,7 @@ def list_users():
         toReturn.append({'id': str(user['_id']), 'email': user['email']})
     return toReturn
 
-@app.route('/users/<user_id>/facts', methods=['POST', 'GET'])
+@app.route('/users/<user_id>', methods=['GET'])
 @api
 def user_assignment(user_id):
     user = db.user.find_one(ObjectId(user_id))
@@ -74,4 +74,12 @@ def user_assignment(user_id):
         db.user.save(user)
         return {}
     else:
-        return user['facts']
+        return user
+
+@app.route('/users/<user_id>/facts', methods=['POST'])
+@api
+def user_facts(user_id):
+    user = db.user.find_one(ObjectId(user_id))
+    user['facts'].append(request.form['fact'])
+    db.user.save(user)
+    return {}
