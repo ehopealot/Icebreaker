@@ -40,7 +40,7 @@ def hello():
     db.test.save(pageviews)
     return {'result':'Hello Worlddddddd!\nHack Week, Bitches!\n %i page views!' % pageviews['count']}
 
-
+#utility route for us to populate the DB with dropboxers
 @app.route('/create_user/<email>')
 @api
 def create_user(email):
@@ -55,6 +55,12 @@ def create_user(email):
     else:
         user_id = db.user.insert({'email': email})
         return {'id': str(user_id)}
+
+#called when a user actually downloads the app and enters their email
+@app.route('/register/<email>')
+@api
+def register(email):
+    return email
 
 @app.route('/list_users')
 @api
