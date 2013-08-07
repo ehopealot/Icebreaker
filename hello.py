@@ -45,11 +45,11 @@ def hello():
 @app.route('/create_user/<email>')
 @api
 def create_user(email):
-    #email = re.search('[a-zA-Z0-9-_\+.]*@dropbox.com', email)
-    #if not email:
-    #    return {'error': -1, 'message': 'must register with a dropbox email address'}
+    email = re.search('[a-zA-Z0-9-_\+.]*@dropbox.com', email)
+    if not email:
+        return {'error': -1, 'message': 'must register with a dropbox email address'}
 
-    #email = email.group(0)
+    email = email.group(0)
     user = db.user.find_one({'email': email})
     if user:
         return {'error': -2, 'message': 'user already exists'}
