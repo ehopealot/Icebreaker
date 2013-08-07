@@ -9,6 +9,8 @@ from pymongo import Connection
 from bson import ObjectId
 from functools import wraps
 from postmark import PMMail
+from random import choice, sample
+from sets import Set
 
 class api:
     def __init__(self, requires_user=False):
@@ -44,6 +46,10 @@ else:
 app = Flask(__name__)
 app.debug = debug
 
+def create_user(email):
+    return db.user.insert({'email':email, 'facts':[], 'found_by':[],
+                    'targets_found':[], 'assignment':None, 'score':0})
+
 @app.route('/')
 @api()
 def hello():
@@ -68,7 +74,7 @@ def create_user(email):
     if user:
         return {'error': -2, 'message': 'user already exists'}
     else:
-        user_id = db.user.insert({'email': email})
+        user_id = create_user('email')
         return {'id': str(user_id)}
 
 #called when a user actually downloads the app and enters their email
@@ -149,3 +155,30 @@ def user_facts(user):
     user['facts'].append(request.form['fact'])
     db.user.save(user)
     return {}
+
+@app.route('/users/<user_id>/get_current_assignment')
+@api(requires_user=True)
+def get_assignment_info(user, target_id):
+
+    halper_ids = sample(new_target['found_by'], 4)
+    halpers = []
+    for halper_id in halpers_ids:
+        halper = db.user.find(ObjectId(halper_id))
+        halpers.append{'email': halper['email']}
+    return {'target_id':target, 'fact':choice(target['facts']),
+            'halpers':halpers}
+
+@app.route('/users/<user_id>/get_new_assignment')
+@api(requires_user=True)
+def get_new_assignment(user):
+    users = db.user.find()
+    found_by = Set(user['found_by'])
+    targets_found = Set(user['targets_found'])
+    filter_set = found_by.union(targets_found).union(user['_id'])
+    possible_targets = filter(lambda u: u['_id'] not in filter_set, users)
+    if not possible_targets:
+        return {'error': -1, 'message': 'no more possible targets'}
+    new_target = choice(filter_set)
+    target_id = user['assignment'][0]
+    user['assignment'] = [new_target['_id'], time.time()]
+    db.user.save(user)
