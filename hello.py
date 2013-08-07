@@ -7,7 +7,13 @@ from bson import json_util
 from urlparse import urlparse
 from pymongo import Connection
 from bson import ObjectId
+from functools import wraps
 
+def api(f):
+    @wraps(f)
+    def w(*args, **kwargs):
+        return Response(json.dumps(f(*args, **kwargs), default=json_util.default), mimetype='text/json')
+    return w
 
 MONGO_URL = os.environ.get('MONGOHQ_URL')
 
@@ -24,6 +30,7 @@ app = Flask(__name__)
 app.debug = debug
 
 @app.route('/')
+@api
 def hello():
     pageviews = db.test.find_one({'event':'page_views'})
     if not pageviews:
@@ -31,38 +38,40 @@ def hello():
     else:
         pageviews['count'] += 1
     db.test.save(pageviews)
-    toReturn = {'result':'Hello Worlddddddd!\nHack Week, Bitches!\n %i page views!' % pageviews['count']}
-    return Response(json.dumps(toReturn), mimetype='text/json')
+    return {'result':'Hello Worlddddddd!\nHack Week, Bitches!\n %i page views!' % pageviews['count']}
+
 
 @app.route('/create_user/<email>')
+@api
 def create_user(email):
     email = re.search('[a-zA-Z0-9-_\+.]*@dropbox.com', email)
     if not email:
-        return Response(json.dumps({'error': -1, 'message': 'must register with a dropbox email address'}), mimetype='text/json')
+        return {'error': -1, 'message': 'must register with a dropbox email address'}
 
     email = email.group(0)
     user = db.user.find_one({'email': email})
     if user:
-        return Response(json.dumps({'error': -2, 'message': 'user already exists'}), mimetype='text/json')
-
+        return {'error': -2, 'message': 'user already exists'}
     else:
         user_id = db.user.insert({'email': email})
-        return Response(json.dumps({'id': str(user_id)}), mimetype='text/json')
+        return {'id': str(user_id)}
 
 @app.route('/list_users')
+@api
 def list_users():
     users = db.user.find()
     toReturn = []
     for user in users:
         toReturn.append({'id': str(user['_id']), 'email': user['email']})
-    return Response(json.dumps(toReturn), mimetype='text/json')
+    return toReturn
 
 @app.route('/users/<user_id>/facts', methods=['POST', 'GET'])
+@api
 def user_assignment(user_id):
     user = db.user.find_one(ObjectId(user_id))
     if request.method == 'POST':
         user['facts'].append(request.form['fact'])
         db.user.save(user)
-        return Response(json.dumps({}), mimetype='text/json')
+        return {}
     else:
-        return Response(json.dumps(user['facts']), mimetype='text/json')
+        return user['facts']
