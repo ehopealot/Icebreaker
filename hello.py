@@ -130,24 +130,24 @@ def register(email):
 def app_redirect(user_id):
     return redirect('GuessWho://%s' % user_id)
 
-@app.route('/authenticate_user/<email>/<user_id>')
+@app.route('/authenticate_user/<user_id>')
 @api()
-def authenticate_user(email, user_id):
+def authenticate_user(user_id):
     try:
         objectid = ObjectId(user_id)
-        user = db.user.find_one({'email': email, '_id': ObjectId(user_id)})
+        user = db.user.find_one({'_id': ObjectId(user_id)})
         if user:
             already = 0
             if 'authenticated' in user:
                 already = 1
-
-            user['authenticated'] = 1
-            db.user.save(user)
+            else:
+                user['authenticated'] = 1
+                db.user.save(user)
             return {'success': 1, 'already_authenticated': already}
         else:
-            return {'error': -1, 'message': "user id and email don't match"}
+            return {'error': -1, 'message': 'invalid user id'}
     except:
-        return {'error': -2, 'message': 'invalid user id'}
+        return {'error': -1, 'message': 'invalid user id'}
 
 @app.route('/list_users')
 @api()
