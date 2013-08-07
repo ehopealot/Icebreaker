@@ -175,7 +175,7 @@ def gen_assignment_info(user, target):
     halper_ids = sample(target['found_by'], min(len(target['found_by']), 4))
     halpers = []
     for halper_id in halper_ids:
-        halper = db.user.find(ObjectId(halper_id))
+        halper = db.user.find_one(ObjectId(halper_id))
         halpers.append({'email': halper['email']})
     fact = choice(target['facts']) if target['facts'] else "no fact"
     return {'target_id':target, 'fact':fact,
@@ -199,6 +199,8 @@ def gen_new_assignment(user):
 @app.route('/users/<user_id>/get_current_assignment')
 @api(requires_user=True)
 def current_assignment(user):
+    if not user['assignment']:
+        return {'error':-1, 'message': 'there is no assignment for this user'}
     target_id = user['assignment'][0]
     target = db.user.find_one(ObjectId(target_id))
     return gen_assignment_info(user, target)
@@ -212,12 +214,15 @@ def get_new_assignment(user):
 @api(requires_user=True)
 def complete_assignment(user):
     assignment = user['assignment']
+    if not assignment:
+        return {'error': -1, 'message': 'there is no assignment for this user'}
     user['targets_found'].append(assignment[0])
     # do something about the score, also should probably validate
     # that this is a legit assignment completion somehow
     user['score'] += 1
     target = db.user.find_one(ObjectId(assignment[0]))
     target['found_by'].append(user['_id'])
+    user['assignment'] = []
     db.user.save(user)
     db.user.save(target)
     return gen_new_assignment(user)
