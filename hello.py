@@ -2,12 +2,13 @@ import os
 import json
 
 import re
-from flask import Flask, request, Response
+from flask import Flask, request, Response, redirect
 from bson import json_util
 from urlparse import urlparse
 from pymongo import Connection
 from bson import ObjectId
 from functools import wraps
+from postmark import PMMail
 
 def api(f):
     @wraps(f)
@@ -60,7 +61,35 @@ def create_user(email):
 @app.route('/register/<email>')
 @api
 def register(email):
-    return email
+    user = db.user.find_one({'email': email})
+    # check if the user is present in the database.  If not then they aren't a real dropboxer
+    if not user:
+        return {'error': -1, 'message':'You are not a real Dropboxer.'}
+
+    # check if the user is authenticated already
+    if 'authenticated' in user:
+        return {'error': -2, 'message':'This email address is already registered.'}
+
+    body = """
+    <html>
+    <body>
+    <center>
+    <h2>Welcome to Dropbox Guess Who!</h2>
+    <br/>
+    Click the link below (on your mobile device) to start playing Guess Who.
+    <br/>
+    <h1><a href="www.google.com">Click Here!</a></h1>
+    <br/>
+    If you don't know why you received this email...
+    </center>
+    </body>
+    </html>
+    """
+
+    message = PMMail(api_key = "ce8cb599-bbc6-4c49-88ee-838268ebcb40", subject = "Verify your email for Dropbox Guess Who!", sender = "andy+guesswho@dropbox.com", to = email, html_body = body)
+    message.send()
+    
+    return {'success':'confirmation email sent to: %s' % email}
 
 @app.route('/list_users')
 @api
