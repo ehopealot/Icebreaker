@@ -61,9 +61,9 @@ def validate_schema(user):
         user['score'] = 0
     db.user.save(user)
 
-def create_user_in_db(email):
+def create_user_in_db(email, img):
     return db.user.insert({'email':email, 'facts':[], 'found_by':[],
-                    'targets_found':[], 'assignment':[], 'score':0})
+                    'targets_found':[], 'assignment':[], 'score':0, 'image':img})
 
 @app.route('/')
 @api()
@@ -77,9 +77,9 @@ def hello():
     return {'result':'Hello Worlddddddd!\nHack Week, Bitches!\n %i page views!' % pageviews['count']}
 
 #utility route for us to populate the DB with dropboxers
-@app.route('/create_user/<email>')
+@app.route('/create_user/<email>/<img>')
 @api()
-def create_user(email):
+def create_user(email, img):
     email = re.search('[a-zA-Z0-9-_\+.]*@dropbox.com', email)
     if not email:
         return {'error': -1, 'message': 'must register with a dropbox email address'}
@@ -89,7 +89,8 @@ def create_user(email):
     if user:
         return {'error': -2, 'message': 'user already exists'}
     else:
-        user_id = create_user_in_db(email)
+        full_url = "https://s3-us-west-2.amazonaws.com/guesswhoimages/" + img
+        user_id = create_user_in_db(email, full_url)
         return {'id': str(user_id)}
 
 #called when a user actually downloads the app and enters their email
@@ -155,7 +156,10 @@ def list_users():
     users = db.user.find()
     toReturn = []
     for user in users:
-        toReturn.append({'id': str(user['_id']), 'email': user['email']})
+        try:
+            toReturn.append({'id': str(user['_id']), 'email': user['email'], 'image': user['image']})
+        except:
+            pass
     return toReturn
 
 @app.route('/users/<user_id>', methods=['GET'])
