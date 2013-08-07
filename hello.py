@@ -78,22 +78,22 @@ def register(email):
     <br/>
     Click the link below (on your mobile device) to start playing Guess Who.
     <br/>
-    <h1><a href="google.com">Click Here!</a></h1>
+    <h1><a href="http://limitless-caverns-4433.herokuapp.com/app_redirect/%s">Click Here!</a></h1>
     <br/>
     If you don't know why you received this email...
     </center>
     </body>
     </html>
-    """
+    """ % str(user['_id'])
 
     message = PMMail(api_key = "ce8cb599-bbc6-4c49-88ee-838268ebcb40", subject = "Verify your email for Dropbox Guess Who!", sender = "andy+guesswho@dropbox.com", to = email, html_body = body)
     message.send()
     
     return {'success':'confirmation email sent to: %s' % email}
 
-@app.route('/app_redirect')
-def app_redirect():
-    return redirect('GuessWho://abc123')
+@app.route('/app_redirect/<user_id>')
+def app_redirect(user_id):
+    return redirect('GuessWho://%s' % user_id)
 
 @app.route('/list_users')
 @api
