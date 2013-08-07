@@ -8,6 +8,7 @@ from urlparse import urlparse
 from pymongo import Connection
 from bson import ObjectId
 from functools import wraps
+from postmark import PMMail
 
 class api:
     def __init__(self, requires_user=False):
