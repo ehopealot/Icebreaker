@@ -196,7 +196,7 @@ def gen_new_assignment(user):
     db.user.save(user)
     return gen_assignment_info(user, new_target)
 
-@app.route('/users/<user_id>/get_current_assignment')
+@app.route('/users/<user_id>/current_assignment')
 @api(requires_user=True)
 def current_assignment(user):
     if not user['assignment']:
@@ -205,7 +205,7 @@ def current_assignment(user):
     target = db.user.find_one(ObjectId(target_id))
     return gen_assignment_info(user, target)
 
-@app.route('/users/<user_id>/get_new_assignment')
+@app.route('/users/<user_id>/new_assignment')
 @api(requires_user=True)
 def get_new_assignment(user):
     return gen_new_assignment(user)
