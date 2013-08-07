@@ -1,3 +1,4 @@
+import time
 import os
 import json
 
@@ -25,6 +26,7 @@ class api:
                 possible_user_id = kwargs['user_id']
                 user = db.user.find_one(ObjectId(possible_user_id))
                 if user: # and 'authenticated' in user:
+                    validate_schema(user)
                     args = (user,) + args
                     del kwargs['user_id']
                 else:
@@ -46,9 +48,22 @@ else:
 app = Flask(__name__)
 app.debug = debug
 
-def create_user(email):
+def validate_schema(user):
+    if 'facts' not in user:
+        user['facts'] = []
+    if 'found_by' not in user:
+        user['found_by'] = []
+    if 'targets_found' not in user:
+        user['targets_found'] = []
+    if 'assignment' not in user:
+        user['assignment'] = []
+    if 'score' not in user:
+        user['score'] = 0
+    db.user.save(user)
+
+def create_user_in_db(email):
     return db.user.insert({'email':email, 'facts':[], 'found_by':[],
-                    'targets_found':[], 'assignment':None, 'score':0})
+                    'targets_found':[], 'assignment':[], 'score':0})
 
 @app.route('/')
 @api()
@@ -74,7 +89,7 @@ def create_user(email):
     if user:
         return {'error': -2, 'message': 'user already exists'}
     else:
-        user_id = create_user('email')
+        user_id = create_user_in_db(email)
         return {'id': str(user_id)}
 
 #called when a user actually downloads the app and enters their email
@@ -156,29 +171,53 @@ def user_facts(user):
     db.user.save(user)
     return {}
 
+def gen_assignment_info(user, target):
+    halper_ids = sample(target['found_by'], min(len(target['found_by']), 4))
+    halpers = []
+    for halper_id in halper_ids:
+        halper = db.user.find(ObjectId(halper_id))
+        halpers.append({'email': halper['email']})
+    fact = choice(target['facts']) if target['facts'] else "no fact"
+    return {'target_id':target, 'fact':fact,
+            'halpers':halpers}
+
+def gen_new_assignment(user):
+    users = db.user.find()
+    found_by = Set(user['found_by'])
+    targets_found = Set(user['targets_found'])
+    filter_set = found_by.union(targets_found).union(str(user['_id']))
+    possible_targets = filter(lambda u: u['_id'] not in filter_set, users)
+    if not possible_targets:
+        return {'error': -1, 'message': 'no more possible targets'}
+    new_target = choice(possible_targets)
+    #just for now
+    validate_schema(new_target)
+    user['assignment'] = [new_target['_id'], time.time()]
+    db.user.save(user)
+    return gen_assignment_info(user, new_target)
+
 @app.route('/users/<user_id>/get_current_assignment')
 @api(requires_user=True)
-def get_assignment_info(user, target_id):
-
-    halper_ids = sample(new_target['found_by'], 4)
-    halpers = []
-    for halper_id in halpers_ids:
-        halper = db.user.find(ObjectId(halper_id))
-        halpers.append{'email': halper['email']}
-    return {'target_id':target, 'fact':choice(target['facts']),
-            'halpers':halpers}
+def current_assignment(user):
+    target_id = user['assignment'][0]
+    target = db.user.find_one(ObjectId(target_id))
+    return gen_assignment_info(user, target)
 
 @app.route('/users/<user_id>/get_new_assignment')
 @api(requires_user=True)
 def get_new_assignment(user):
-    users = db.user.find()
-    found_by = Set(user['found_by'])
-    targets_found = Set(user['targets_found'])
-    filter_set = found_by.union(targets_found).union(user['_id'])
-    possible_targets = filter(lambda u: u['_id'] not in filter_set, users)
-    if not possible_targets:
-        return {'error': -1, 'message': 'no more possible targets'}
-    new_target = choice(filter_set)
-    target_id = user['assignment'][0]
-    user['assignment'] = [new_target['_id'], time.time()]
+    return gen_new_assignment(user)
+
+@app.route('/users/<user_id>/complete_assignment')
+@api(requires_user=True)
+def complete_assignment(user):
+    assignment = user['assignment']
+    user['targets_found'].append(assignment[0])
+    # do something about the score, also should probably validate
+    # that this is a legit assignment completion somehow
+    user['score'] += 1
+    target = db.user.find_one(ObjectId(assignment[0]))
+    target['found_by'].append(user['_id'])
     db.user.save(user)
+    db.user.save(target)
+    return gen_new_assignment(user)
