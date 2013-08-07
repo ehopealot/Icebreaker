@@ -8,13 +8,26 @@ from urlparse import urlparse
 from pymongo import Connection
 from bson import ObjectId
 from functools import wraps
-from postmark import PMMail
 
-def api(f):
-    @wraps(f)
-    def w(*args, **kwargs):
-        return Response(json.dumps(f(*args, **kwargs), default=json_util.default), mimetype='text/json')
-    return w
+class api:
+    def __init__(self, requires_user=False):
+        self.requires_user = requires_user
+
+    def __call__(self, f):
+        @wraps(f)
+        def w(*args, **kwargs):
+            if self.requires_user:
+                if not 'user_id' in kwargs:
+                    return Response(status=404)
+                possible_user_id = kwargs['user_id']
+                user = db.user.find_one(ObjectId(possible_user_id))
+                if user: # and 'authenticated' in user:
+                    args = (user,) + args
+                    del kwargs['user_id']
+                else:
+                    return Response(status=401)
+            return Response(json.dumps(f(*args, **kwargs), default=json_util.default), mimetype='text/json')
+        return w
 
 MONGO_URL = os.environ.get('MONGOHQ_URL')
 
@@ -31,7 +44,7 @@ app = Flask(__name__)
 app.debug = debug
 
 @app.route('/')
-@api
+@api()
 def hello():
     pageviews = db.test.find_one({'event':'page_views'})
     if not pageviews:
@@ -43,7 +56,7 @@ def hello():
 
 #utility route for us to populate the DB with dropboxers
 @app.route('/create_user/<email>')
-@api
+@api()
 def create_user(email):
     email = re.search('[a-zA-Z0-9-_\+.]*@dropbox.com', email)
     if not email:
@@ -59,7 +72,7 @@ def create_user(email):
 
 #called when a user actually downloads the app and enters their email
 @app.route('/register/<email>')
-@api
+@api()
 def register(email):
     user = db.user.find_one({'email': email})
     # check if the user is present in the database.  If not then they aren't a real dropboxer
@@ -88,7 +101,7 @@ def register(email):
 
     message = PMMail(api_key = "ce8cb599-bbc6-4c49-88ee-838268ebcb40", subject = "Verify your email for Dropbox Guess Who!", sender = "andy+guesswho@dropbox.com", to = email, html_body = body)
     message.send()
-    
+
     return {'success':'confirmation email sent to: %s' % email}
 
 @app.route('/app_redirect/<user_id>')
@@ -96,13 +109,13 @@ def app_redirect(user_id):
     return redirect('GuessWho://%s' % user_id)
 
 @app.route('/authenticate_user/<email>/<user_id>')
-@api
+@api()
 def authenticate_user(email, user_id):
     try:
         objectid = ObjectId(user_id)
         user = db.user.find_one({'email': email, '_id': ObjectId(user_id)})
         if user:
-            already = 0 
+            already = 0
             if 'authenticated' in user:
                 already = 1
 
@@ -115,7 +128,7 @@ def authenticate_user(email, user_id):
         return {'error': -2, 'message': 'invalid user id'}
 
 @app.route('/list_users')
-@api
+@api()
 def list_users():
     users = db.user.find()
     toReturn = []
@@ -124,20 +137,14 @@ def list_users():
     return toReturn
 
 @app.route('/users/<user_id>', methods=['GET'])
-@api
-def user_assignment(user_id):
+@api()
+def user(user_id):
     user = db.user.find_one(ObjectId(user_id))
-    if request.method == 'POST':
-        user['facts'].append(request.form['fact'])
-        db.user.save(user)
-        return {}
-    else:
-        return user
+    return user
 
 @app.route('/users/<user_id>/facts', methods=['POST'])
-@api
-def user_facts(user_id):
-    user = db.user.find_one(ObjectId(user_id))
+@api(requires_user=True)
+def user_facts(user):
     user['facts'].append(request.form['fact'])
     db.user.save(user)
     return {}

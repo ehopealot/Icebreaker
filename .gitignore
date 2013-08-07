@@ -37,5 +37,5 @@ nosetests.xml
 .pydevproject
 .pyc
 venv/
-
-\#*
+.env
+\#*1;2c
