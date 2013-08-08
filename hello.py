@@ -182,7 +182,7 @@ def gen_assignment_info(user, target):
         halper = db.user.find_one(ObjectId(halper_id))
         halpers.append({'email': halper['email']})
     fact = choice(target['facts']) if target['facts'] else "no fact"
-    return {'target_id':target['_id'], 'fact':fact,
+    return {'target_id':str(target['_id']), 'fact':fact,
             'halpers':halpers}
 
 def gen_new_assignment(user):
