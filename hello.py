@@ -180,7 +180,7 @@ def gen_assignment_info(user, target):
     halpers = []
     for halper_id in halper_ids:
         halper = db.user.find_one(ObjectId(halper_id))
-        halpers.append({'email': halper['email']})
+        halpers.append({'image': halper['image'] if 'image' in halper else ''})
     fact = choice(target['facts']) if target['facts'] else "no fact"
     return {'target_id':str(target['_id']), 'fact':fact,
             'halpers':halpers}
