@@ -205,14 +205,16 @@ def gen_new_assignment(user):
 @api(requires_user=True)
 def current_assignment(user):
     if not user['assignment']:
-        return {'error':-1, 'message': 'there is no assignment for this user'}
+        #if there's not assignment, make a new one
+        return gen_new_assignment(user)
     target_id = user['assignment'][0]
     target = db.user.find_one(ObjectId(target_id))
     return gen_assignment_info(user, target)
 
-@app.route('/users/<user_id>/new_assignment')
+@app.route('/users/<user_id>/skip_assignment')
 @api(requires_user=True)
-def get_new_assignment(user):
+def skip_assignment(user):
+    # blindly get a new assignment. This is called when an assignment is skipped
     return gen_new_assignment(user)
 
 @app.route('/users/<user_id>/complete_assignment')
