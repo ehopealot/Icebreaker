@@ -171,7 +171,7 @@ def user(user_id):
 @app.route('/users/<user_id>/facts', methods=['POST'])
 @api(requires_user=True)
 def user_facts(user):
-    user['facts'].append(request.form['fact'])
+    user['facts'] = request.json
     db.user.save(user)
     return {}
 
