@@ -122,7 +122,7 @@ def register(email):
     </html>
     """ % str(user['_id'])
 
-    message = PMMail(api_key = "ce8cb599-bbc6-4c49-88ee-838268ebcb40", subject = "Verify your email for Dropbox Guess Who!", sender = "andy+guesswho@dropbox.com", to = email, html_body = body)
+    message = PMMail(api_key = os.environ.get('POSTMARK_API_KEY'), subject = "Verify your email for Dropbox Guess Who!", sender = "andy+guesswho@dropbox.com", to = email, html_body = body)
     message.send()
 
     return {'success':'confirmation email sent to: %s' % email}
