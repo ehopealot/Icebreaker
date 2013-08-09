@@ -65,10 +65,12 @@ def validate_schema(user):
         user['fname'] = ''
     if 'lname' not in user:
         user['lname'] = ''
+    if 'teams' not in user:
+        user['teams'] = []
     db.user.save(user)
 
 def create_user_in_db(email, img):
-    user_info = {'email':email, 'facts':[], 'found_by':[], 'fname':'', 'lname':'',
+    user_info = {'email':email, 'facts':[], 'found_by':[], 'fname':'', 'lname':'', 'teams':[],
                     'targets_found':[], 'assignment':[], 'already_know':[], 'score':0, 'image':img}
     if debug:
         user_info['authenticated'] = True
@@ -96,6 +98,46 @@ def add_real_name(email, first, last):
         return "yes"
     return "no"
 
+@app.route('/add_team/<team_name>')
+@api()
+def add_team(team_name):
+    team = db.teams.find_one({'name': team_name})
+    if not team:
+        db.teams.insert({'name': team_name, 'members': []})
+        return {}
+    return team
+
+@app.route('/list_teams')
+@api()
+def list_teams():
+    toReturn = []
+    for team in db.teams.find():
+        toReturn.append(team)
+    return toReturn
+
+@app.route('/add_person_team/<email>/<team_name>')
+@api()
+def add_person_team(email, team_name):
+    team = db.teams.find_one({'name': team_name})
+    if not team:
+        return {'error': 'unrecognized team name'}
+    
+    user = db.user.find_one({'email': email})
+    if not user:
+        return {'error': 'unrecognized user'}
+
+    if user['_id'] not in team['members']:
+        team['members'].append(user['_id'])
+        db.teams.save(team)
+
+    if 'teams' not in user:
+        user['teams'] = []
+
+    if team_name not in user['teams']:
+        user['teams'].append(team_name)
+        db.user.save(user)
+
+    return {'success':'yes'}
 #utility route for us to populate the DB with dropboxers
 @app.route('/create_user/<email>/<img>')
 @api()
