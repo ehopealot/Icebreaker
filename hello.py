@@ -122,9 +122,12 @@ def create_user_helper(email, img):
 @api()
 def register(email):
     user = db.user.find_one({'email': email})
+    already_authed = 0
     # check if the user is present in the database
     if user:
         user_id = str(user['_id'])
+        if 'authenticated' in user:
+            already_authed = 1
     else:
         # allow people not in the database to register, give them default picture
         new_user_result = create_user_helper(email, 'tempfront.png')
@@ -152,7 +155,7 @@ def register(email):
     message = PMMail(api_key = os.environ.get('POSTMARK_API_KEY'), subject = "Verify your email for Dropbox Guess Who!", sender = "andy+guesswho@dropbox.com", to = email, html_body = body)
     message.send()
 
-    return {'success':'confirmation email sent to: %s' % email}
+    return {'success': 'confirmation email sent to: %s' % email, 'already_authenticated': already_authed}
 
 @app.route('/app_redirect/<user_id>')
 def app_redirect(user_id):
