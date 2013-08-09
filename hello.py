@@ -316,5 +316,5 @@ def complete_assignment(user):
 def leaderboard():
     users = filter(lambda u: 'score' in u and u['score'], db.user.find())
     users = sorted(users, key=lambda u: -u['score'])
-    leaderboard = [{'image':u['image'] if 'image' in u else "", 'name':u['email'], 'score':u['score']} for u in users]
+    leaderboard = [{'image':u['image'] if 'image' in u else "", 'name':(u['fname'] + " " + u['lname']), 'score':u['score']} for u in users]
     return leaderboard
