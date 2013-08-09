@@ -25,7 +25,7 @@ class api:
                     return Response(status=404)
                 possible_user_id = kwargs['user_id']
                 user = db.user.find_one(ObjectId(possible_user_id))
-                if user and 'authenticated' in user:
+                if debug or (user and 'authenticated' in user):
                     validate_schema(user)
                     args = (user,) + args
                     del kwargs['user_id']
@@ -64,8 +64,12 @@ def validate_schema(user):
     db.user.save(user)
 
 def create_user_in_db(email, img):
-    return db.user.insert({'email':email, 'facts':[], 'found_by':[],
-                    'targets_found':[], 'assignment':[], 'already_know':[], 'score':0, 'image':img})
+    user_info = {'email':email, 'facts':[], 'found_by':[],
+                    'targets_found':[], 'assignment':[], 'already_know':[], 'score':0, 'image':img}
+    if debug:
+        user_info['authenticated'] = True
+    return db.user.insert(user_info)
+
 
 @app.route('/')
 @api()
@@ -190,8 +194,8 @@ def gen_assignment_info(user, target):
     for halper_id in halper_ids:
         halper = db.user.find_one(ObjectId(halper_id))
         halpers.append({'image': halper['image'] if 'image' in halper else ''})
-    fact = choice(target['facts']) if target['facts'] else "no fact"
-    return {'target_id':str(target['_id']), 'fact':fact,
+    facts = target['facts'] if 'facts' in target else []
+    return {'target_id':str(target['_id']), 'facts':facts,
             'halpers':halpers}
 
 def gen_new_assignment(user):
