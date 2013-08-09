@@ -173,7 +173,7 @@ def user(user_id):
 @app.route('/users/<user_id>/facts', methods=['POST'])
 @api(requires_user=True)
 def user_facts(user):
-    user['facts'] = request.json
+    user['facts'] = request.json['facts']
     db.user.save(user)
     return {}
 
@@ -190,7 +190,6 @@ def gen_assignment_info(user, target):
 def gen_new_assignment(user):
     users = db.user.find()
     valid_users = ['ehope@dropbox.com', 'mj@dropbox.com', 'andy@dropbox.com', 'chris.turney@dropbox.com', 'snark@dropbox.com']
-    found_by = Set(user['found_by'])
     targets_found = Set(user['targets_found'])
     filter_set = targets_found.union(user['already_know']).union([user['_id']])
     possible_targets = filter(lambda u: u['_id'] not in filter_set and u['email'] in valid_users, users)
