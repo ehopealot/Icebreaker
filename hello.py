@@ -82,6 +82,9 @@ def hello():
 @app.route('/create_user/<email>/<img>')
 @api()
 def create_user(email, img):
+    return create_user_helper(email, img)
+
+def create_user_helper(email, img):
     email = re.search('[a-zA-Z0-9-_\+.]*@dropbox.com', email)
     if not email:
         return {'error': -1, 'message': 'must register with a dropbox email address'}
@@ -95,18 +98,22 @@ def create_user(email, img):
         user_id = create_user_in_db(email, full_url)
         return {'id': str(user_id)}
 
+
 #called when a user actually downloads the app and enters their email
 @app.route('/register/<email>')
 @api()
 def register(email):
     user = db.user.find_one({'email': email})
-    # check if the user is present in the database.  If not then they aren't a real dropboxer
-    if not user:
-        return {'error': -1, 'message':'You are not a real Dropboxer.'}
-
-    # check if the user is authenticated already
-    if 'authenticated' in user:
-        return {'error': -2, 'message':'This email address is already registered.'}
+    # check if the user is present in the database
+    if user:
+        user_id = str(user['_id'])
+    else:
+        # allow people not in the database to register, give them default picture
+        new_user_result = create_user_helper(email, 'tempfront.png')
+        if 'error' in new_user_result:
+            return new_user_result
+        else:
+            user_id = new_user_result['id']
 
     body = """
     <html>
@@ -122,7 +129,7 @@ def register(email):
     </center>
     </body>
     </html>
-    """ % str(user['_id'])
+    """ % user_id
 
     message = PMMail(api_key = os.environ.get('POSTMARK_API_KEY'), subject = "Verify your email for Dropbox Guess Who!", sender = "andy+guesswho@dropbox.com", to = email, html_body = body)
     message.send()
