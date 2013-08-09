@@ -290,9 +290,10 @@ def current_assignment(user):
 def skip_assignment(user, never_again=False):
     if never_again:
         assignment = user['assignment']
-        if assignment[0] not in user['already_know']:
-            user['already_know'].append(assignment[0])
-        db.user.save(user)
+        if assignment:
+            if assignment[0] not in user['already_know']:
+                user['already_know'].append(assignment[0])
+            db.user.save(user)
     # blindly get a new assignment. This is called when an assignment is skipped
     return gen_new_assignment(user)
 
