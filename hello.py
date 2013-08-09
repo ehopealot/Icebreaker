@@ -262,7 +262,7 @@ def gen_new_assignment(user):
     valid_users = ['ehope@dropbox.com', 'mj@dropbox.com', 'andy@dropbox.com', 'chris.turney@dropbox.com', 'snark@dropbox.com']
     targets_found = Set(user['targets_found'])
     filter_set = targets_found.union(user['already_know']).union([user['_id']])
-    possible_targets = filter(lambda u: u['_id'] not in filter_set and u['facts'], users)
+    possible_targets = filter(lambda u: u['_id'] not in filter_set and u['facts'] and 'authenticated' in u, users)
     if not possible_targets:
         return {'error': -1, 'message': 'no more possible targets'}
     new_target = choice(possible_targets)
@@ -308,7 +308,8 @@ def complete_assignment(user):
     # that this is a legit assignment completion somehow
     user['score'] += 1
     target = db.user.find_one(ObjectId(assignment[0]))
-    target['found_by'].append(user['_id'])
+    if user['_id'] not in target['found_by']:
+        target['found_by'].append(user['_id'])
     user['assignment'] = []
     db.user.save(user)
     db.user.save(target)
