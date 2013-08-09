@@ -262,7 +262,7 @@ def gen_new_assignment(user):
     valid_users = ['ehope@dropbox.com', 'mj@dropbox.com', 'andy@dropbox.com', 'chris.turney@dropbox.com', 'snark@dropbox.com']
     targets_found = Set(user['targets_found'])
     filter_set = targets_found.union(user['already_know']).union([user['_id']])
-    possible_targets = filter(lambda u: u['_id'] not in filter_set and u['facts'])
+    possible_targets = filter(lambda u: u['_id'] not in filter_set and u['facts'], users)
     if not possible_targets:
         return {'error': -1, 'message': 'no more possible targets'}
     new_target = choice(possible_targets)
