@@ -275,7 +275,7 @@ def gen_new_assignment(user):
 @app.route('/users/<user_id>/current_assignment')
 @api(requires_user=True)
 def current_assignment(user):
-    if user['assignment'][0] in user['already_know']:
+    if user['assignment'] and user['assignment'][0] in user['already_know']:
         user['assignment'] = []
     if not user['assignment']:
         #if there's not assignment, make a new one
