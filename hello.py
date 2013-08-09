@@ -59,11 +59,13 @@ def validate_schema(user):
         user['assignment'] = []
     if 'score' not in user:
         user['score'] = 0
+    if 'already_know' not in user:
+        user['already_know'] = []
     db.user.save(user)
 
 def create_user_in_db(email, img):
     return db.user.insert({'email':email, 'facts':[], 'found_by':[],
-                    'targets_found':[], 'assignment':[], 'score':0, 'image':img})
+                    'targets_found':[], 'assignment':[], 'already_know':[], 'score':0, 'image':img})
 
 @app.route('/')
 @api()
@@ -190,7 +192,7 @@ def gen_new_assignment(user):
     valid_users = ['ehope@dropbox.com', 'mj@dropbox.com', 'andy@dropbox.com', 'chris.turney@dropbox.com', 'snark@dropbox.com']
     found_by = Set(user['found_by'])
     targets_found = Set(user['targets_found'])
-    filter_set = targets_found.union([user['_id']])
+    filter_set = targets_found.union(user['already_know']).union([user['_id']])
     possible_targets = filter(lambda u: u['_id'] not in filter_set and u['email'] in valid_users, users)
     if not possible_targets:
         return {'error': -1, 'message': 'no more possible targets'}
@@ -212,8 +214,13 @@ def current_assignment(user):
     return gen_assignment_info(user, target)
 
 @app.route('/users/<user_id>/skip_assignment')
+@app.route('/users/<user_id>/skip_assignment/<never_again>')
 @api(requires_user=True)
-def skip_assignment(user):
+def skip_assignment(user, never_again=False):
+    if never_again:
+        assignment = user['assignment']
+        user['already_know'].append(assignment[0])
+        db.user.save(user)
     # blindly get a new assignment. This is called when an assignment is skipped
     return gen_new_assignment(user)
 
