@@ -308,7 +308,8 @@ def complete_assignment(user):
     user['assignment'] = []
     db.user.save(user)
     db.user.save(target)
-    return gen_new_assignment(user)
+    gen_new_assignment(user)
+    return {'points_scored':1, 'target_info':target}
 
 @app.route('/leaderboard')
 @api()
