@@ -61,15 +61,18 @@ def validate_schema(user):
         user['score'] = 0
     if 'already_know' not in user:
         user['already_know'] = []
+    if 'fname' not in user:
+        user['fname'] = ''
+    if 'lname' not in user:
+        user['lname'] = ''
     db.user.save(user)
 
 def create_user_in_db(email, img):
-    user_info = {'email':email, 'facts':[], 'found_by':[],
+    user_info = {'email':email, 'facts':[], 'found_by':[], 'fname':'', 'lname':'',
                     'targets_found':[], 'assignment':[], 'already_know':[], 'score':0, 'image':img}
     if debug:
         user_info['authenticated'] = True
     return db.user.insert(user_info)
-
 
 @app.route('/')
 @api()
@@ -81,6 +84,17 @@ def hello():
         pageviews['count'] += 1
     db.test.save(pageviews)
     return {'result':'Hello Worlddddddd!\nHack Week, Bitches!\n %i page views!' % pageviews['count']}
+
+@app.route('/add_real_name/<email>/<first>/<last>')
+@api()
+def add_real_name(email, first, last):
+    user = db.user.find_one({'email':email})
+    if user:
+        user['fname'] = first
+        user['lname'] = last
+        db.user.save(user)
+        return "yes"
+    return "no"
 
 #utility route for us to populate the DB with dropboxers
 @app.route('/create_user/<email>/<img>')
